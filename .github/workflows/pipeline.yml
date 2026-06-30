@@ -37,6 +37,26 @@ jobs:
       - name: Trigger deployment
         if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
         run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+      - name: Notify Discord on success
+        if: ${{ success() && github.event_name == 'push' && !contains(join(github.event.commits.*.message, ' '), '#skip') }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: Success
+          title: "New version deployed"
+          description: "Commit `${{ github.sha }}` by ${{ github.actor }} deployed to production"
+          color: 0x00cc44
+      - name: Notify Discord on failure
+        if: ${{ failure() }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: Failure
+          title: "Build failed"
+          description: |
+            Commit `${{ github.sha }}` by ${{ github.actor }} broke the build!
+            ${{ join(github.event.commits.*.message, ', ') }}
+          color: 0xff0000
 
   tag_release:
     needs: [simple_deployment_pipeline]
